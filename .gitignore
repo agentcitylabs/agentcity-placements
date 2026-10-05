@@ -1,0 +1,15 @@
+# Foundry build output
+out/
+cache/
+broadcast/
+
+# Secrets: deployer and lister keys live here. Never commit it.
+.env
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# Internal docs (not committed)
+docs/
