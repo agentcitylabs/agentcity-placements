@@ -36,7 +36,7 @@ abstract contract Deployer is Script {
         uint96 royaltyBps = uint96(vm.envOr("PLACEMENTS_ROYALTY_BPS", uint256(500)));
         uint16 feeBps = uint16(vm.envOr("MARKET_FEE_BPS", uint256(250)));
 
-        nft = new AgentcityPlacements("Agentcity Placements", "ACPL", deployer, treasury, supply, royaltyBps);
+        nft = new AgentcityPlacements("Agentcity Placements", "ACPL", deployer, treasury, treasury, supply, royaltyBps);
         market = new AgentcityPlacementMarket(deployer, treasury, feeBps);
 
         market.setCollection(address(nft), true);
@@ -163,7 +163,7 @@ contract DeployCityCollection is Deployer {
         uint96 royaltyBps = uint96(vm.envOr("PLACEMENTS_ROYALTY_BPS", uint256(500)));
 
         _start();
-        nft = new AgentcityPlacements(name, symbol, admin, treasury, supply, royaltyBps);
+        nft = new AgentcityPlacements(name, symbol, admin, treasury, treasury, supply, royaltyBps);
         vm.stopBroadcast();
         console.log("AgentcityPlacements", address(nft));
         console.log("Next: whitelist it on the marketplace and approve the market as rental operator.");

@@ -24,8 +24,8 @@ contract AgentcityPlacementMarketTest is Test {
     uint96 constant ROYALTY = 500; // 5%
 
     function setUp() public {
-        city = new AgentcityPlacements("Agentcity Placements", "ACPL", admin, treasury, 46, ROYALTY);
-        otherCity = new AgentcityPlacements("Coast Placements", "ACCP", admin, treasury, 10, ROYALTY);
+        city = new AgentcityPlacements("Agentcity Placements", "ACPL", admin, treasury, treasury, 46, ROYALTY);
+        otherCity = new AgentcityPlacements("Coast Placements", "ACCP", admin, treasury, treasury, 10, ROYALTY);
         market = new Market(admin, treasury, FEE);
         usdg = new MockUSDG();
 

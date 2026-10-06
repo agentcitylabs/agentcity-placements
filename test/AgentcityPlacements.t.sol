@@ -15,7 +15,7 @@ contract AgentcityPlacementsTest is Test {
     address moderator = makeAddr("moderator");
 
     function setUp() public {
-        nft = new AgentcityPlacements("Agentcity Placements", "ACPL", admin, treasury, 46, 500);
+        nft = new AgentcityPlacements("Agentcity Placements", "ACPL", admin, treasury, treasury, 46, 500);
         vm.startPrank(admin);
         nft.setRentalOperator(operator, true);
         nft.setModerator(moderator, true);
@@ -44,13 +44,13 @@ contract AgentcityPlacementsTest is Test {
     }
 
     function test_supplyCanDifferPerCity() public {
-        AgentcityPlacements other = new AgentcityPlacements("Coast", "ACC", admin, treasury, 12, 0);
+        AgentcityPlacements other = new AgentcityPlacements("Coast", "ACC", admin, treasury, treasury, 12, 0);
         assertEq(other.balanceOf(treasury), 12);
     }
 
     function test_zeroSupplyIsRefused() public {
         vm.expectRevert(AgentcityPlacements.ZeroSupply.selector);
-        new AgentcityPlacements("x", "x", admin, treasury, 0, 0);
+        new AgentcityPlacements("x", "x", admin, treasury, treasury, 0, 0);
     }
 
     function test_placementIsSetOnceByAdmin() public {
@@ -151,8 +151,134 @@ contract AgentcityPlacementsTest is Test {
         string memory json = string(_decode(string(b64)));
         // vm.parseJson reverts on invalid JSON.
         assertEq(vm.parseJsonString(json, ".name"), 'Say "hi" \\ there');
-        assertEq(vm.parseJsonString(json, ".image"), "https://cdn/a.webm");
+        // A video plays from animation_url; the image is the on-chain card.
+        assertEq(vm.parseJsonString(json, ".animation_url"), "https://cdn/a.webm");
+        assertTrue(_startsWith(vm.parseJsonString(json, ".image"), "data:image/svg+xml;base64,"));
         assertEq(vm.parseJsonString(json, ".attributes[0].value"), "central-north");
+    }
+
+    /// The JSON behind a token's data URI.
+    function _metadata(uint256 id) internal view returns (string memory) {
+        return _json(nft.tokenURI(id));
+    }
+
+    function _json(string memory uri) internal pure returns (string memory) {
+        bytes memory prefix = bytes("data:application/json;base64,");
+        bytes memory u = bytes(uri);
+        bytes memory b64 = new bytes(u.length - prefix.length);
+        for (uint256 i; i < b64.length; ++i) {
+            b64[i] = u[i + prefix.length];
+        }
+        return string(_decode(string(b64)));
+    }
+
+    function _startsWith(string memory s, string memory prefix) internal pure returns (bool) {
+        bytes memory a = bytes(s);
+        bytes memory b = bytes(prefix);
+        if (a.length < b.length) return false;
+        for (uint256 i; i < b.length; ++i) {
+            if (a[i] != b[i]) return false;
+        }
+        return true;
+    }
+
+    event MetadataUpdate(uint256 _tokenId);
+    event BatchMetadataUpdate(uint256 _fromTokenId, uint256 _toTokenId);
+    event ContractURIUpdated();
+
+    function test_everyChangeTellsPlatformsToRefresh() public {
+        vm.expectEmit(address(nft));
+        emit MetadataUpdate(5);
+        vm.prank(admin);
+        nft.setPlacement(5, "banner-programming-1", "banner");
+
+        vm.expectEmit(address(nft));
+        emit MetadataUpdate(5);
+        vm.prank(treasury);
+        nft.setCreative(5, creative("https://cdn/ad.png", "Launch"));
+
+        vm.expectEmit(address(nft));
+        emit MetadataUpdate(5);
+        vm.prank(moderator);
+        nft.flag(5, "spam");
+
+        vm.expectEmit(address(nft));
+        emit MetadataUpdate(5);
+        vm.prank(moderator);
+        nft.unflag(5);
+
+        vm.expectEmit(address(nft));
+        emit MetadataUpdate(5);
+        vm.prank(operator);
+        nft.setUser(5, renter, uint64(block.timestamp + 1 days));
+
+        vm.expectEmit(address(nft));
+        emit BatchMetadataUpdate(1, 46);
+        vm.prank(admin);
+        nft.refreshMetadata(1, 46);
+
+        vm.prank(admin);
+        vm.expectRevert(AgentcityPlacements.BadRange.selector);
+        nft.refreshMetadata(1, 47);
+        assertTrue(nft.supportsInterface(0x49064906), "ERC-4906");
+    }
+
+    function test_imageAdIsTheImage_emptyAndFlaggedShowTheCard() public {
+        vm.prank(treasury);
+        nft.setCreative(7, creative("https://cdn/ad.png?v=2", "Spring sale"));
+        string memory json = _metadata(7);
+        assertEq(vm.parseJsonString(json, ".image"), "https://cdn/ad.png?v=2");
+        assertFalse(vm.keyExistsJson(json, ".animation_url"), "an image has no animation_url");
+        assertEq(vm.parseJsonString(json, ".attributes[2].value"), "image");
+
+        // Never blank: an empty placement shows the card.
+        string memory empty = _metadata(8);
+        assertTrue(_startsWith(vm.parseJsonString(empty, ".image"), "data:image/svg+xml;base64,"));
+        assertEq(vm.parseJsonString(empty, ".attributes[2].value"), "none");
+
+        vm.prank(moderator);
+        nft.flag(7, "spam");
+        string memory hidden = _metadata(7);
+        assertTrue(_startsWith(vm.parseJsonString(hidden, ".image"), "data:image/svg+xml;base64,"));
+        assertEq(vm.parseJsonString(hidden, ".external_url"), "");
+        assertEq(vm.parseJsonString(hidden, ".attributes[2].value"), "under review");
+    }
+
+    function test_longTitlesStayValidOnTheCard() public {
+        // 12 rockets = 48 bytes: clipped on the card, never mid-character.
+        string memory rockets = unicode"🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀";
+        vm.prank(treasury);
+        nft.setCreative(11, creative("https://cdn/spot.webm", rockets));
+        string memory json = _metadata(11);
+        assertEq(vm.parseJsonString(json, ".name"), rockets, "the full title stays in the metadata");
+        assertTrue(_startsWith(vm.parseJsonString(json, ".image"), "data:image/svg+xml;base64,"));
+    }
+
+    function test_videoIsRecognisedInAnyCaseAndWithAQuery() public {
+        vm.prank(treasury);
+        nft.setCreative(9, creative("https://cdn/Spot.MP4?x=1", "Spot"));
+        assertEq(vm.parseJsonString(_metadata(9), ".animation_url"), "https://cdn/Spot.MP4?x=1");
+    }
+
+    function test_collectionMetadataIsOnChainAndUpdatable() public {
+        string memory json = _json(nft.contractURI());
+        assertEq(vm.parseJsonString(json, ".name"), "Agentcity Placements");
+        assertEq(vm.parseJsonString(json, ".external_link"), "https://agentcity.lol");
+        vm.expectEmit(address(nft));
+        emit ContractURIUpdated();
+        vm.prank(admin);
+        nft.setCollectionImage("https://agentcity.lol/collection.png");
+        assertEq(vm.parseJsonString(_json(nft.contractURI()), ".image"), "https://agentcity.lol/collection.png");
+        vm.prank(holder);
+        vm.expectRevert();
+        nft.setExternalLink("https://evil.example");
+    }
+
+    function test_initialHolderCanDifferFromTreasury() public {
+        AgentcityPlacements moved = new AgentcityPlacements("Moved", "MV", admin, treasury, holder, 3, 500);
+        assertEq(moved.ownerOf(1), holder, "tokens go to the initial holder");
+        (address to,) = moved.royaltyInfo(1, 10_000);
+        assertEq(to, treasury, "royalties still go to the treasury");
     }
 
     function test_royaltyAndInterfaces() public view {
