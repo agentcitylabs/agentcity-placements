@@ -22,6 +22,7 @@ Buy it, rent it by the day, auction it, or make an offer, then put your ad in fr
 
 - 🪧 **46 placements downtown.** 4 billboards over Central AI, 16 banners on the outer edge, and 26 reserved for boards the city adds later.
 - 🎬 **The ad lives on chain.** An image or a silent looping video, with a title, a description and a link. `tokenURI` is on-chain JSON, so no IPFS and no server.
+- 🔄 **Platforms refresh on their own.** Every change emits ERC-4906 `MetadataUpdate`, so explorers and marketplaces show the new ad without a manual refresh.
 - 🏷️ **Four ways to trade.** Fixed-price listings, escrowed offers, English auctions and daily rentals.
 - 💸 **Pay your way.** ETH, USDG or any whitelisted partner token.
 - 🔑 **Rentals survive sales.** A renter keeps the board until the rental ends, even if the token changes hands.
@@ -64,6 +65,19 @@ The supply is set once, in the constructor, and every token is minted to the tre
 
 The holder (or an address they approved) calls `setCreative`. **While a placement is rented, only the renter can.** A moderator can `flag` an ad so the city stops showing it. That moves no token and no funds, and the next `setCreative` clears it.
 
+### Metadata
+
+`tokenURI` and `contractURI` are built on chain, with no server and no IPFS:
+
+| Ad | `image` | `animation_url` |
+| --- | --- | --- |
+| Image (PNG, JPG, WebP) | the image | — |
+| Video (MP4, WebM) | an on-chain SVG card | the video |
+| None, or flagged | the SVG card ("Your ad here." / "Under review") | — |
+
+- **ERC-4906 refresh.** `setCreative`, `flag`, `unflag`, `setPlacement` and rentals emit `MetadataUpdate(tokenId)`, and the owner can emit `BatchMetadataUpdate` with `refreshMetadata(from, to)`.
+- **Collection metadata (ERC-7572).** `contractURI()` returns the collection's name, description, image and link. `setCollectionImage` and `setExternalLink` change it and emit `ContractURIUpdated`.
+
 ### Rentals
 
 Rentals use ERC-4907 `userOf`. Only an approved rental operator (the market) can grant one, and never over a rental that is still running. A rental **survives a sale**: the new holder gets the token, and the renter keeps the board until the rental ends.
@@ -101,12 +115,14 @@ The market trades **only collections its admin whitelists** (`setCollection`), s
 
 | Contract | Address |
 | --- | --- |
-| AgentcityPlacements | [`0xbFa50C64C923e02E691be3df784302B13327a381`](https://explorer.testnet.chain.robinhood.com/address/0xbFa50C64C923e02E691be3df784302B13327a381) |
+| AgentcityPlacements (v2) | [`0x51B1A225B9C545CC9EcabC73b91c162B93A9aFBf`](https://explorer.testnet.chain.robinhood.com/address/0x51B1A225B9C545CC9EcabC73b91c162B93A9aFBf) |
 | AgentcityPlacementMarket | [`0xFa121194bCE5DfA4685bd2C54B7D0bd3B3F0575b`](https://explorer.testnet.chain.robinhood.com/address/0xFa121194bCE5DfA4685bd2C54B7D0bd3B3F0575b) |
 | Mock USDG (6 decimals) | [`0x3FdcbDdD4e65F4Be3ac86315c2B54C6FEE172182`](https://explorer.testnet.chain.robinhood.com/address/0x3FdcbDdD4e65F4Be3ac86315c2B54C6FEE172182) |
 | Mock AGCT (18 decimals) | [`0x2C9882C048C7cc4da165b565F8456EaF78e2224E`](https://explorer.testnet.chain.robinhood.com/address/0x2C9882C048C7cc4da165b565F8456EaF78e2224E) |
 
 All four are verified on Blockscout. Full details are in [deployments/robinhood-testnet.json](deployments/robinhood-testnet.json).
+
+The first collection, [`0xbFa5…a381`](https://explorer.testnet.chain.robinhood.com/address/0xbFa50C64C923e02E691be3df784302B13327a381), is retired. Its holders and ads moved to v2 with `script/Migrate.s.sol`, and the market no longer trades it.
 
 > **Mainnet** is not deployed yet. It waits on an external audit.
 
@@ -123,7 +139,7 @@ cd agentcity-placements
 git submodule update --init --recursive
 
 forge build
-forge test        # 36 tests, including fuzzing
+forge test        # unit, fuzz and migration tests
 forge fmt --check
 ```
 
@@ -227,6 +243,23 @@ cast send <market> "setCurrency(address,bool)" <token> true --rpc-url deploy
 
 `$VERIFIER_URL` above is the value from `.env`. Either run `source .env` first, or paste the URL.
 
+<details>
+<summary><b>Moving a city to a new collection</b> (a contract upgrade)</summary>
+
+`Migrate` reads the old collection and deploys the new one. It then copies every token's name, ad, flag and running rental, gives each token back to its holder, and whitelists the new collection on the same market (retiring the old one). Funds held by the market stay where they are.
+
+```sh
+forge script script/Migrate.s.sol --tc Migrate --rpc-url deploy --broadcast --slow --gas-estimate-multiplier 300
+```
+
+> **Arbitrum chains (Robinhood Chain) charge L1 data gas** that local estimates miss. Keep `--gas-estimate-multiplier 300`. If a run still stops part way, finish it with `MigrateFinish`, which only sends what is missing and can be re-run until it reports `Steps sent 0`:
+
+```sh
+PLACEMENTS_NEW_ADDRESS=0x… forge script script/MigrateFinish.s.sol --tc MigrateFinish --rpc-url deploy --broadcast --slow --gas-estimate-multiplier 300
+```
+
+</details>
+
 ---
 
 ## 🗂️ Repository layout
@@ -240,6 +273,8 @@ src/
 script/
   Deploy.s.sol                   Deploy · DeployTestnet · DeployCityCollection
   ListPlacements.s.sol           list a range of tokens at one price
+  Migrate.s.sol                  move holders and ads to a new collection
+  MigrateFinish.s.sol            finish a migration that stopped part way
 test/                            Foundry tests (unit + fuzz)
 deployments/                     deployed addresses per network
 ```
