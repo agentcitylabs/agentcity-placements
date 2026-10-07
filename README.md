@@ -124,7 +124,17 @@ All four are verified on Blockscout. Full details are in [deployments/robinhood-
 
 The first collection, [`0xbFa5…a381`](https://explorer.testnet.chain.robinhood.com/address/0xbFa50C64C923e02E691be3df784302B13327a381), is retired. Its holders and ads moved to v2 with `script/Migrate.s.sol`, and the market no longer trades it.
 
-> **Mainnet** is not deployed yet. It waits on an external audit.
+### Robinhood Chain mainnet · chain id `4663`
+
+| Contract | Address |
+| --- | --- |
+| AgentcityPlacements | [`0x5834Da514603fA6d86603740dDD732caC5e94090`](https://robinhoodchain.blockscout.com/address/0x5834Da514603fA6d86603740dDD732caC5e94090) |
+| AgentcityPlacementMarket | [`0xaAc2B33179Dc6C5c7E989869105d5e56559bE33f`](https://robinhoodchain.blockscout.com/address/0xaAc2B33179Dc6C5c7E989869105d5e56559bE33f) |
+
+Payments: ETH, [USDG](https://robinhoodchain.blockscout.com/address/0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168), [AGENT CITY](https://robinhoodchain.blockscout.com/address/0x878fbde429e1b21522735ed9dcf25e752a119284) and [IMD](https://robinhoodchain.blockscout.com/address/0x5f7bb59365ce557c26dbcaa4ee9d39a4b95b7127). Both contracts are verified on [Sourcify](https://sourcify.dev/) (exact match). Full details are in [deployments/robinhood-mainnet.json](deployments/robinhood-mainnet.json).
+
+> [!NOTE]
+> The contracts have not had an external audit yet.
 
 ---
 

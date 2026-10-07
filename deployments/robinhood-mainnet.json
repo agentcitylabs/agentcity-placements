@@ -1,0 +1,29 @@
+{
+  "network": "Robinhood Chain mainnet",
+  "chainId": 4663,
+  "rpc": "https://rpc.mainnet.chain.robinhood.com",
+  "explorer": "https://robinhoodchain.blockscout.com",
+  "deployedAt": "2026-10-07",
+  "deployer": "0x9A91F71Dd392953f93553DD877b2E50cccBa02b4",
+  "admin": "0x333520719e02B441f03a806f1ae505FD9199ee6D",
+  "treasury": "0x51B12F3268128Ca27d460255ACD4798f5eC7BD85",
+  "contracts": {
+    "AgentcityPlacements": "0x5834Da514603fA6d86603740dDD732caC5e94090",
+    "AgentcityPlacementMarket": "0xaAc2B33179Dc6C5c7E989869105d5e56559bE33f"
+  },
+  "currencies": {
+    "ETH": "0x0000000000000000000000000000000000000000",
+    "USDG (Paxos, 6 decimals)": "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168",
+    "AGENT CITY (18 decimals)": "0x878fbde429e1b21522735ed9dcf25e752a119284",
+    "IMD (Identity.md, 18 decimals)": "0x5f7bb59365ce557c26dbcaa4ee9d39a4b95b7127"
+  },
+  "settings": {
+    "supply": 46,
+    "namedPlacements": 20,
+    "royaltyBps": 500,
+    "feeBps": 250
+  },
+  "placementsDeployBlock": 82183862,
+  "verification": "Sourcify exact_match (both contracts)",
+  "pending": "admin must call acceptOwnership() on AgentcityPlacements and AgentcityPlacementMarket"
+}
