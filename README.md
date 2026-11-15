@@ -129,9 +129,13 @@ The first collection, [`0xbFa5…a381`](https://explorer.testnet.chain.robinhood
 | Contract | Address |
 | --- | --- |
 | AgentcityPlacements | [`0x5834Da514603fA6d86603740dDD732caC5e94090`](https://robinhoodchain.blockscout.com/address/0x5834Da514603fA6d86603740dDD732caC5e94090) |
-| AgentcityPlacementMarket | [`0xaAc2B33179Dc6C5c7E989869105d5e56559bE33f`](https://robinhoodchain.blockscout.com/address/0xaAc2B33179Dc6C5c7E989869105d5e56559bE33f) |
+| AgentcityPlacementMarket | [`0x02a78DCCa1E253257fe24E80C57097145776d2C8`](https://robinhoodchain.blockscout.com/address/0x02a78DCCa1E253257fe24E80C57097145776d2C8) |
 
-Payments: ETH, [USDG](https://robinhoodchain.blockscout.com/address/0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168), [AGENT CITY](https://robinhoodchain.blockscout.com/address/0x878fbde429e1b21522735ed9dcf25e752a119284) and [IMD](https://robinhoodchain.blockscout.com/address/0x5f7bb59365ce557c26dbcaa4ee9d39a4b95b7127). Both contracts are verified on [Sourcify](https://sourcify.dev/) (exact match). Full details are in [deployments/robinhood-mainnet.json](deployments/robinhood-mainnet.json).
+Payments: ETH, [USDG](https://robinhoodchain.blockscout.com/address/0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168) and [AGENT CITY](https://robinhoodchain.blockscout.com/address/0x878fbde429e1b21522735ed9dcf25e752a119284). Both contracts are verified on [Sourcify](https://sourcify.dev/) (exact match). Full details are in [deployments/robinhood-mainnet.json](deployments/robinhood-mainnet.json).
+
+The first market, [`0xaAc2…E33f`](https://robinhoodchain.blockscout.com/address/0xaAc2B33179Dc6C5c7E989869105d5e56559bE33f), is retired. It was replaced on 15 Nov 2026 so that auction winners collect their token with `claim`. Listings, offers, auctions and rent terms were not copied; anything it holds stays withdrawable there.
+
+Ownership: both contracts are still owned by the deployer, [`0x9A91…02b4`](https://robinhoodchain.blockscout.com/address/0x9A91F71Dd392953f93553DD877b2E50cccBa02b4). The hand-over to the admin, [`0x3335…ee6D`](https://robinhoodchain.blockscout.com/address/0x333520719e02B441f03a806f1ae505FD9199ee6D), is pending until it calls `acceptOwnership()`. The admin is a single wallet, not a multisig.
 
 > [!NOTE]
 > The contracts have not had an external audit yet.
@@ -169,7 +173,7 @@ cp .env.example .env
 | `RPC_URL` | all | JSON-RPC endpoint, used as `--rpc-url deploy`. The template points at Robinhood Chain testnet. |
 | `VERIFIER_URL` | `--verify` | Blockscout API. No API key is needed on Robinhood Chain. |
 | `DEPLOYER_PRIVATE_KEY` | deploy scripts | Optional. If empty, sign with a Foundry keystore (`--account`). |
-| `PLACEMENTS_ADMIN` | deploy | Multisig that owns both contracts after deploy. It must call `acceptOwnership()`. |
+| `PLACEMENTS_ADMIN` | deploy | Admin wallet that owns both contracts after deploy (a multisig is recommended). It must call `acceptOwnership()`. |
 | `PLACEMENTS_TREASURY` | deploy | Receives every minted token, the fees and the royalties. |
 | `PLACEMENTS_SUPPLY` | deploy | Fixed supply (46 for downtown). |
 | `PLACEMENTS_ROYALTY_BPS` | deploy | Royalty in basis points (500 = 5%, max 1000). |
@@ -283,6 +287,7 @@ src/
 script/
   Deploy.s.sol                   Deploy · DeployTestnet · DeployCityCollection
   ListPlacements.s.sol           list a range of tokens at one price
+  DeployMarket.s.sol             new marketplace for an existing collection
   Migrate.s.sol                  move holders and ads to a new collection
   MigrateFinish.s.sol            finish a migration that stopped part way
 test/                            Foundry tests (unit + fuzz)

@@ -113,7 +113,7 @@ abstract contract Deployer is Script {
 /// @notice Deploys downtown Agentcity's placements collection and the
 /// marketplace, wires them together, then hands both to the admin.
 ///
-///   PLACEMENTS_ADMIN        multisig that will own both contracts (required)
+///   PLACEMENTS_ADMIN        admin wallet that will own both contracts (required)
 ///   PLACEMENTS_TREASURY     receives all tokens, fees and royalties (required)
 ///   PLACEMENTS_SUPPLY       fixed supply, minted to the treasury (default 46)
 ///   PLACEMENTS_ROYALTY_BPS  secondary-sale royalty, max 1000 (default 500)
