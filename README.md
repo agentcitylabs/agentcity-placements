@@ -90,7 +90,7 @@ The market trades **only collections its admin whitelists** (`setCollection`), s
 | --- | --- | --- |
 | 🏷️ Fixed price | `list` · `cancelListing` · `buy` | The token stays with the seller until bought. The buyer passes the price they saw, so a changed listing can't charge them more. |
 | 🤝 Offers | `makeOffer` · `cancelOffer` · `acceptOffer` | Funds are escrowed. Anyone can offer on any token. The holder passes a minimum, so a swapped offer can't be accepted for less. |
-| 🔨 Auctions | `startAuction` · `bid` · `settle` · `claim` · `cancelAuction` | English auction. Each bid must beat the last by 5%. A bid in the last 10 minutes extends the end by 10 minutes. `settle` pays the seller and the winner collects the token with `claim`, to any address. With no bid, `settle` returns the token. |
+| 🔨 Auctions | `startAuction` · `bid` · `settle` · `claim` · `cancelAuction` | English auction. Each bid must beat the last by 5%. A bid in the last 10 minutes extends the end by 10 minutes. `settle` pays the seller and the winner collects the token with `claim`, to any address. A winner with no way to call `claim` (a contract that cannot make that call) never receives the token: it stays in the market, which is that winner's loss alone and blocks nothing else. With no bid, `settle` returns the token. |
 | 📅 Rentals | `setRentTerms` · `clearRentTerms` · `rent` | Paid up front, per day, between a min and max number of days. Terms set by a previous holder lapse automatically. |
 | 💰 Payouts | `withdraw(currency)` | Proceeds, refunds and fees are credited and pulled. A receiver that rejects ETH can never block a trade. |
 
