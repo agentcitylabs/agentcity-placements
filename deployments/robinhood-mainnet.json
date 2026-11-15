@@ -29,8 +29,9 @@
   "retired": {
     "AgentcityPlacementMarket v1": {
       "address": "0xaAc2B33179Dc6C5c7E989869105d5e56559bE33f",
-      "note": "Replaced by the market above (auction winners collect their token with claim, so a winner that cannot receive it no longer blocks settle). Listings, offers, auctions and rent terms were not copied. Funds and tokens it holds stay withdrawable there. It also accepted IMD (0x5f7bb59365ce557c26dbcaa4ee9d39a4b95b7127)."
+      "retiredAt": "2026-11-16",
+      "note": "Replaced by the market above (auction winners collect their token with claim, so a winner that cannot receive it no longer blocks settle). Paused, the collection removed from its whitelist, removed as rental operator, and ownership renounced (owner is the zero address), so it can never be unpaused or reconfigured. It held no tokens or funds. Listings, offers, auctions and rent terms were not copied. It also accepted IMD (0x5f7bb59365ce557c26dbcaa4ee9d39a4b95b7127)."
     }
   },
-  "pending": "admin must call acceptOwnership() on AgentcityPlacements and AgentcityPlacementMarket; the deployer still has to pause the retired market and remove it as rental operator"
+  "ownership": "AgentcityPlacements and AgentcityPlacementMarket are owned by the admin (a single wallet, not a multisig); accepted on 2026-11-15"
 }

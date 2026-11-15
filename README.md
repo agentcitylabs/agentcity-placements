@@ -133,9 +133,9 @@ The first collection, [`0xbFa5…a381`](https://explorer.testnet.chain.robinhood
 
 Payments: ETH, [USDG](https://robinhoodchain.blockscout.com/address/0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168) and [AGENT CITY](https://robinhoodchain.blockscout.com/address/0x878fbde429e1b21522735ed9dcf25e752a119284). Both contracts are verified on [Sourcify](https://sourcify.dev/) (exact match). Full details are in [deployments/robinhood-mainnet.json](deployments/robinhood-mainnet.json).
 
-The first market, [`0xaAc2…E33f`](https://robinhoodchain.blockscout.com/address/0xaAc2B33179Dc6C5c7E989869105d5e56559bE33f), is retired. It was replaced on 15 Nov 2026 so that auction winners collect their token with `claim`. Listings, offers, auctions and rent terms were not copied; anything it holds stays withdrawable there.
+The first market, [`0xaAc2…E33f`](https://robinhoodchain.blockscout.com/address/0xaAc2B33179Dc6C5c7E989869105d5e56559bE33f), is retired. It was replaced on 15 Nov 2026 so that auction winners collect their token with `claim`. It is paused, no longer trades this collection and is not a rental operator, and its ownership was renounced, so it can never be unpaused or reconfigured. It holds no tokens or funds.
 
-Ownership: both contracts are still owned by the deployer, [`0x9A91…02b4`](https://robinhoodchain.blockscout.com/address/0x9A91F71Dd392953f93553DD877b2E50cccBa02b4). The hand-over to the admin, [`0x3335…ee6D`](https://robinhoodchain.blockscout.com/address/0x333520719e02B441f03a806f1ae505FD9199ee6D), is pending until it calls `acceptOwnership()`. The admin is a single wallet, not a multisig.
+Ownership: both contracts are owned by the admin, [`0x3335…ee6D`](https://robinhoodchain.blockscout.com/address/0x333520719e02B441f03a806f1ae505FD9199ee6D). It is a single wallet, not a multisig.
 
 > [!NOTE]
 > The contracts have not had an external audit yet.
