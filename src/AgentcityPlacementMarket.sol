@@ -74,6 +74,9 @@ contract AgentcityPlacementMarket is Ownable2Step, Pausable, ReentrancyGuard, IE
     mapping(address => mapping(uint256 => mapping(address => Offer))) public offers;
     mapping(address => mapping(uint256 => Auction)) public auctions;
     mapping(address => mapping(uint256 => RentTerms)) public rentTerms;
+    /// @notice Auction winners who have not collected their token yet:
+    /// collection => tokenId => winner.
+    mapping(address => mapping(uint256 => address)) public unclaimed;
 
     /// @notice Claimable balances: account => currency => amount.
     mapping(address => mapping(address => uint256)) public credits;
@@ -135,6 +138,7 @@ contract AgentcityPlacementMarket is Ownable2Step, Pausable, ReentrancyGuard, IE
     event AuctionExtended(address indexed collection, uint256 indexed tokenId, uint64 end);
     event AuctionSettled(address indexed collection, uint256 indexed tokenId, address winner, uint256 amount);
     event AuctionCancelled(address indexed collection, uint256 indexed tokenId);
+    event AuctionClaimed(address indexed collection, uint256 indexed tokenId, address indexed winner, address to);
 
     event RentTermsSet(
         address indexed collection,
@@ -176,6 +180,7 @@ contract AgentcityPlacementMarket is Ownable2Step, Pausable, ReentrancyGuard, IE
     error AuctionNotOver();
     error BidTooLow();
     error HasBids();
+    error NotWinner();
     error NotRentable();
     error StillRented();
     error BadDays();
@@ -383,7 +388,10 @@ contract AgentcityPlacementMarket is Ownable2Step, Pausable, ReentrancyGuard, IE
     }
 
     /// @notice Anyone can settle once the auction is over. Not paused, so a
-    /// pause never traps a token or a bid.
+    /// pause never traps a token or a bid. Settling pays the seller and
+    /// reserves the token for the winner, who collects it with `claim`; the
+    /// token is never pushed, so a winner that cannot receive it cannot
+    /// block the seller's payout.
     function settle(address collection, uint256 tokenId) external nonReentrant {
         Auction memory a = auctions[collection][tokenId];
         if (a.seller == address(0)) revert NoAuction();
@@ -391,14 +399,25 @@ contract AgentcityPlacementMarket is Ownable2Step, Pausable, ReentrancyGuard, IE
         delete auctions[collection][tokenId];
 
         if (a.highBidder == address(0)) {
-            IERC721(collection).safeTransferFrom(address(this), a.seller, tokenId);
+            // Plain transfer: the seller held the token before, and a
+            // missing receiver hook must not trap it here.
+            IERC721(collection).transferFrom(address(this), a.seller, tokenId);
             emit AuctionSettled(collection, tokenId, address(0), 0);
             return;
         }
         escrowed[a.currency] -= a.highBid;
-        IERC721(collection).safeTransferFrom(address(this), a.highBidder, tokenId);
+        unclaimed[collection][tokenId] = a.highBidder;
         _payOut(collection, tokenId, a.seller, a.currency, a.highBid, true);
         emit AuctionSettled(collection, tokenId, a.highBidder, a.highBid);
+    }
+
+    /// @notice The winner of a settled auction collects the token, to any
+    /// address that can receive it. Not paused, so a pause never traps it.
+    function claim(address collection, uint256 tokenId, address to) external nonReentrant {
+        if (unclaimed[collection][tokenId] != msg.sender) revert NotWinner();
+        delete unclaimed[collection][tokenId];
+        IERC721(collection).safeTransferFrom(address(this), to, tokenId);
+        emit AuctionClaimed(collection, tokenId, msg.sender, to);
     }
 
     /// @notice The seller can take the token back while nobody has bid.
@@ -408,7 +427,7 @@ contract AgentcityPlacementMarket is Ownable2Step, Pausable, ReentrancyGuard, IE
         if (msg.sender != a.seller) revert NotTokenOwner();
         if (a.highBidder != address(0)) revert HasBids();
         delete auctions[collection][tokenId];
-        IERC721(collection).safeTransferFrom(address(this), a.seller, tokenId);
+        IERC721(collection).transferFrom(address(this), a.seller, tokenId);
         emit AuctionCancelled(collection, tokenId);
     }
 

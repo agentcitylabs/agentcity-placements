@@ -90,7 +90,7 @@ The market trades **only collections its admin whitelists** (`setCollection`), s
 | --- | --- | --- |
 | 🏷️ Fixed price | `list` · `cancelListing` · `buy` | The token stays with the seller until bought. The buyer passes the price they saw, so a changed listing can't charge them more. |
 | 🤝 Offers | `makeOffer` · `cancelOffer` · `acceptOffer` | Funds are escrowed. Anyone can offer on any token. The holder passes a minimum, so a swapped offer can't be accepted for less. |
-| 🔨 Auctions | `startAuction` · `bid` · `settle` · `cancelAuction` | English auction. Each bid must beat the last by 5%. A bid in the last 10 minutes extends the end by 10 minutes. With no bid, `settle` returns the token. |
+| 🔨 Auctions | `startAuction` · `bid` · `settle` · `claim` · `cancelAuction` | English auction. Each bid must beat the last by 5%. A bid in the last 10 minutes extends the end by 10 minutes. `settle` pays the seller and the winner collects the token with `claim`, to any address. With no bid, `settle` returns the token. |
 | 📅 Rentals | `setRentTerms` · `clearRentTerms` · `rent` | Paid up front, per day, between a min and max number of days. Terms set by a previous holder lapse automatically. |
 | 💰 Payouts | `withdraw(currency)` | Proceeds, refunds and fees are credited and pulled. A receiver that rejects ETH can never block a trade. |
 
@@ -104,7 +104,7 @@ The market trades **only collections its admin whitelists** (`setCollection`), s
 ### Safety rails
 
 - OpenZeppelin `Ownable2Step`, `ReentrancyGuard`, `Pausable` and `SafeERC20`.
-- `pause()` stops new trades but never `settle`, cancellations or `withdraw`, so funds and tokens can't be trapped.
+- `pause()` stops new trades but never `settle`, `claim`, cancellations or `withdraw`, so funds and tokens can't be trapped.
 - The contracts are not upgradeable.
 
 ---

@@ -4,7 +4,7 @@ pragma solidity ^0.8.26;
 import {Test} from "forge-std/Test.sol";
 import {AgentcityPlacements} from "../src/AgentcityPlacements.sol";
 import {AgentcityPlacementMarket as Market} from "../src/AgentcityPlacementMarket.sol";
-import {MockUSDG, FeeOnTransferToken, RejectsEth} from "./Mocks.sol";
+import {MockUSDG, FeeOnTransferToken, RejectsEth, NoReceiverBidder, NoReceiverSeller} from "./Mocks.sol";
 
 contract AgentcityPlacementMarketTest is Test {
     AgentcityPlacements city; // whitelisted
@@ -275,8 +275,62 @@ contract AgentcityPlacementMarketTest is Test {
 
         vm.warp(newEnd);
         market.settle(address(city), 1);
+        // Settling pays the seller and reserves the token for the winner.
+        assertEq(city.ownerOf(1), address(market));
+        assertEq(market.unclaimed(address(city), 1), bidder2);
+        assertGt(market.credits(seller, ETH), 0);
+
+        vm.prank(buyer);
+        vm.expectRevert(Market.NotWinner.selector);
+        market.claim(address(city), 1, buyer);
+        vm.prank(bidder2);
+        market.claim(address(city), 1, bidder2);
         assertEq(city.ownerOf(1), bidder2);
+        vm.prank(bidder2);
+        vm.expectRevert(Market.NotWinner.selector);
+        market.claim(address(city), 1, bidder2);
         assertSolvent();
+    }
+
+    /// A winner without onERC721Received used to make `settle` revert
+    /// forever, trapping the token and the winning bid.
+    function test_winnerThatCannotReceiveNeverBlocksSettle() public {
+        vm.prank(seller);
+        market.startAuction(address(city), 1, ETH, 1 ether, 0, uint64(block.timestamp + 1 days));
+        NoReceiverBidder b = new NoReceiverBidder();
+        b.bid{value: 1 ether}(market, address(city), 1);
+        vm.warp(block.timestamp + 2 days);
+
+        market.settle(address(city), 1);
+        uint256 fee = (1 ether * uint256(FEE)) / 10_000;
+        uint256 royalty = (1 ether * uint256(ROYALTY)) / 10_000;
+        assertEq(market.credits(seller, ETH), 1 ether - fee - royalty, "seller paid");
+        vm.prank(seller);
+        market.withdraw(ETH);
+        assertSolvent();
+
+        // The winner cannot take the token itself, but can send it anywhere.
+        vm.expectRevert();
+        b.claim(market, address(city), 1, address(b));
+        b.claim(market, address(city), 1, buyer);
+        assertEq(city.ownerOf(1), buyer);
+        assertEq(market.unclaimed(address(city), 1), address(0));
+    }
+
+    function test_sellerThatCannotReceiveStillGetsTheTokenBack() public {
+        NoReceiverSeller s = new NoReceiverSeller();
+        vm.startPrank(seller);
+        city.transferFrom(seller, address(s), 1);
+        city.transferFrom(seller, address(s), 2);
+        vm.stopPrank();
+
+        s.start(market, address(city), 1);
+        s.start(market, address(city), 2);
+        s.cancel(market, address(city), 1);
+        assertEq(city.ownerOf(1), address(s));
+        vm.warp(block.timestamp + 2 days);
+        market.settle(address(city), 2);
+        assertEq(city.ownerOf(2), address(s));
     }
 
     function test_auctionWithNoBidReturnsTheToken() public {
@@ -313,6 +367,8 @@ contract AgentcityPlacementMarketTest is Test {
         market.settle(address(city), 1);
         vm.prank(seller);
         market.withdraw(ETH);
+        vm.prank(buyer);
+        market.claim(address(city), 1, buyer);
         assertEq(city.ownerOf(1), buyer);
         assertSolvent();
     }
