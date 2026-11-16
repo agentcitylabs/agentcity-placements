@@ -181,6 +181,7 @@ contract AgentcityPlacementMarket is Ownable2Step, Pausable, ReentrancyGuard, IE
     error BidTooLow();
     error HasBids();
     error NotWinner();
+    error InvalidRecipient();
     error NotRentable();
     error StillRented();
     error BadDays();
@@ -415,6 +416,8 @@ contract AgentcityPlacementMarket is Ownable2Step, Pausable, ReentrancyGuard, IE
     /// address that can receive it. Not paused, so a pause never traps it.
     function claim(address collection, uint256 tokenId, address to) external nonReentrant {
         if (unclaimed[collection][tokenId] != msg.sender) revert NotWinner();
+        // The market accepts tokens, so claiming to it would strand this one.
+        if (to == address(this)) revert InvalidRecipient();
         delete unclaimed[collection][tokenId];
         IERC721(collection).safeTransferFrom(address(this), to, tokenId);
         emit AuctionClaimed(collection, tokenId, msg.sender, to);

@@ -283,6 +283,11 @@ contract AgentcityPlacementMarketTest is Test {
         vm.prank(buyer);
         vm.expectRevert(Market.NotWinner.selector);
         market.claim(address(city), 1, buyer);
+        // Claiming to the market itself would strand the token.
+        vm.prank(bidder2);
+        vm.expectRevert(Market.InvalidRecipient.selector);
+        market.claim(address(city), 1, address(market));
+        assertEq(market.unclaimed(address(city), 1), bidder2);
         vm.prank(bidder2);
         market.claim(address(city), 1, bidder2);
         assertEq(city.ownerOf(1), bidder2);
